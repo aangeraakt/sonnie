@@ -1,0 +1,27 @@
+services:
+  sonnies:
+    build: .
+    restart: unless-stopped
+    init: true
+    env_file:
+      - .env
+    environment:
+      DISCORD_TOKEN: ${DISCORD_TOKEN}
+      CLIENT_ID: ${CLIENT_ID}
+      GUILD_ID: ${GUILD_ID:-}
+      BOT_NAME: ${BOT_NAME:-Sonnies}
+      BOT_VERSION: ${BOT_VERSION:-1.3.0}
+      DEFAULT_PREFIX: ${DEFAULT_PREFIX:-!}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      COMMAND_CHANNEL_ID: ${COMMAND_CHANNEL_ID:-}
+      DEBUG: ${DEBUG:-false}
+      SPOTIFY_CLIENT_ID: ${SPOTIFY_CLIENT_ID:-}
+      SPOTIFY_CLIENT_SECRET: ${SPOTIFY_CLIENT_SECRET:-}
+      SPOTIFY_REFRESH_TOKEN: ${SPOTIFY_REFRESH_TOKEN:-}
+      SPOTIFY_MARKET: ${SPOTIFY_MARKET:-}
+      LTC_ENCRYPTION_KEY: ${LTC_ENCRYPTION_KEY:-}
+    volumes:
+      - sonnies-data:/app/data
+
+volumes:
+  sonnies-data:

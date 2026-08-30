@@ -1,0 +1,38 @@
+{
+  "name": "sonnies-discord-bot",
+  "version": "1.0.0",
+  "description": "Full All-in-1 Discord Bot named Sonnies with Pure JSON storage, Tickets & HTML Transcripts, Music & 24/7 Radio, Economy, and Advanced Moderation",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "shard": "node shard.js",
+    "backup": "node -e \"require('./database/db').backupNow('manual')\""
+  },
+  "keywords": [
+    "discord",
+    "discordjs",
+    "all-in-one",
+    "bot",
+    "sonnies",
+    "sqlite",
+    "slashcommands"
+  ],
+  "author": "Antigravity",
+  "license": "MIT",
+  "dependencies": {
+    "@bitcoinerlab/secp256k1": "^2.0.0",
+    "@discordjs/voice": "^0.19.2",
+    "@napi-rs/canvas": "^1.0.7",
+    "@noble/ciphers": "^2.3.0",
+    "bgutils-js": "^4.0.3",
+    "bitcoinjs-lib": "^6.1.7",
+    "discord.js": "^14.15.3",
+    "dotenv": "^16.4.5",
+    "ecpair": "^2.1.0",
+    "ffmpeg-static": "^5.3.0",
+    "jimp": "^1.6.1",
+    "jsdom": "^27.0.1",
+    "opusscript": "^0.0.8",
+    "youtubei.js": "^18.0.0"
+  }
+}

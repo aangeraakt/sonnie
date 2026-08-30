@@ -1,0 +1,9 @@
+.git
+.agents
+.cursor
+.claude
+node_modules
+data
+.env
+*.md
+.gitignore
