@@ -5,15 +5,6 @@ const path = require('path');
 const Logger = require('./utils/logger');
 const db = require('./database/db');
 const { loadCommands, deployCommands } = require('./utils/commandLoader');
-const { installComponentsV2 } = require('./utils/componentsV2');
-
-// Installed before anything can send: it rewrites every outgoing embed into a
-// Components V2 container on its way to the API.
-if (installComponentsV2()) {
-  Logger.info('Components V2 rendering enabled for all embeds.');
-} else {
-  Logger.warn('Components V2 rendering is disabled - embeds will send in classic format.');
-}
 
 const client = new Client({
   intents: [
