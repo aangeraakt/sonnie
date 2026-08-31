@@ -155,31 +155,62 @@ async function getUsdPrice() {
   }
 }
 
-function estimateVsize(inputs, outputs) {
-  return Math.ceil(10.5 + (inputs * 68) + (outputs * 31));
+// version + locktime + both varint counts, plus the 2-byte segwit marker at
+// witness weight (2/4 of a vbyte).
+const TX_OVERHEAD_VSIZE = 10.5;
+// A signed P2WPKH input: 41 vbytes of outpoint, script length and sequence,
+// plus a 108-byte witness (72-byte signature + 33-byte pubkey + counts)
+// discounted to 27. Signatures run 71-72 bytes, so the larger is assumed -
+// over-estimating costs a few litoshis, under-estimating gets the transaction
+// rejected outright.
+const INPUT_VSIZE = 68;
+// Litecoin Core relays nothing under 1 lit/vbyte, so the floor on the fee is
+// the transaction's virtual size itself.
+const MIN_RELAY_SAT_PER_VB = 1;
+
+/**
+ * Virtual size of one output, which depends on the script its address
+ * encodes: 34 vbytes for legacy P2PKH, 32 for P2SH, 31 for P2WPKH, 43 for
+ * P2WSH and P2TR. Charging P2WPKH for every output under-funds a send to an
+ * `L...` address by exactly 3 vbytes, which the relay floor then rejects.
+ */
+function outputVsize(address) {
+  try {
+    return 8 + 1 + bitcoin.address.toOutputScript(String(address), LITECOIN).length;
+  } catch (err) {
+    return 43; // unrecognised: assume the largest standard output
+  }
 }
 
-function selectUtxos(utxos, target, satPerVb) {
+function estimateVsize(inputs, outputAddresses) {
+  const outputs = outputAddresses.reduce((sum, address) => sum + outputVsize(address), 0);
+  return Math.ceil(TX_OVERHEAD_VSIZE + (inputs * INPUT_VSIZE) + outputs);
+}
+
+function selectUtxos(utxos, target, satPerVb, toAddress, changeAddress) {
   const sorted = [...utxos].sort((a, b) => b.value - a.value);
   const selected = [];
   let total = 0;
   for (const utxo of sorted) {
     selected.push(utxo);
     total += Number(utxo.value);
-    const feeOne = estimateVsize(selected.length, 1) * satPerVb;
-    const feeTwo = estimateVsize(selected.length, 2) * satPerVb;
-    if (total >= target + feeTwo && total - target - feeTwo >= DUST) {
-      return { selected, total, fee: feeTwo, change: total - target - feeTwo };
+    const feeWithChange = estimateVsize(selected.length, [toAddress, changeAddress]) * satPerVb;
+    const feeNoChange = estimateVsize(selected.length, [toAddress]) * satPerVb;
+    if (total >= target + feeWithChange && total - target - feeWithChange >= DUST) {
+      return { selected, total, fee: feeWithChange, change: total - target - feeWithChange };
     }
-    if (total >= target + feeOne) {
-      return { selected, total, fee: feeOne, change: 0 };
+    if (total >= target + feeNoChange) {
+      // What is left over is below the dust threshold, so it goes to the miner
+      // rather than becoming an output nobody can spend. The fee is therefore
+      // everything the outputs do not claim, not the estimate.
+      return { selected, total, fee: total - target, change: 0 };
     }
   }
   return null;
 }
 
 function buildSignedTx(wif, fromAddress, toAddress, amountSats, utxos, satPerVb) {
-  const plan = selectUtxos(utxos, amountSats, satPerVb);
+  const plan = selectUtxos(utxos, amountSats, satPerVb, toAddress, fromAddress);
   if (!plan) return { error: 'Not enough confirmed LTC to cover this amount plus network fee.' };
 
   const keyPair = ECPair.fromWIF(wif, LITECOIN);
@@ -191,31 +222,58 @@ function buildSignedTx(wif, fromAddress, toAddress, amountSats, utxos, satPerVb)
     return { error: 'Wallet key does not match the saved address.' };
   }
 
-  const psbt = new bitcoin.Psbt({ network: LITECOIN });
-  for (const utxo of plan.selected) {
-    psbt.addInput({
-      hash: utxo.txid,
-      index: utxo.vout,
-      witnessUtxo: {
-        script: payment.output,
-        value: Number(utxo.value)
-      }
-    });
+  const assemble = (change) => {
+    const psbt = new bitcoin.Psbt({ network: LITECOIN });
+    for (const utxo of plan.selected) {
+      psbt.addInput({
+        hash: utxo.txid,
+        index: utxo.vout,
+        witnessUtxo: {
+          script: payment.output,
+          value: Number(utxo.value)
+        }
+      });
+    }
+    psbt.addOutput({ address: toAddress, value: amountSats });
+    if (change >= DUST) {
+      psbt.addOutput({ address: fromAddress, value: change });
+    }
+    for (let i = 0; i < plan.selected.length; i += 1) {
+      psbt.signInput(i, keyPair);
+    }
+    psbt.finalizeAllInputs();
+    return psbt.extractTransaction();
+  };
+
+  // Everything above works from a projected size. This is the transaction that
+  // will actually be relayed, so the fee is checked against its real virtual
+  // size before it goes anywhere - a signature one byte shorter than assumed,
+  // or an output type the estimate got wrong, is the difference between a
+  // confirmed send and a `min relay fee not met` rejection.
+  const rate = Math.max(Number(satPerVb) || 0, MIN_RELAY_SAT_PER_VB);
+  const requiredFee = (tx) => Math.ceil(tx.virtualSize() * rate);
+  const feeFor = (change) => plan.total - amountSats - (change >= DUST ? change : 0);
+
+  let change = plan.change;
+  let tx = assemble(change);
+
+  if (feeFor(change) < requiredFee(tx)) {
+    const shortfall = requiredFee(tx) - feeFor(change);
+    // Top the fee up out of the change, or drop the change output entirely
+    // when trimming it would leave dust behind.
+    change = change - shortfall >= DUST ? change - shortfall : 0;
+    tx = assemble(change);
+    if (feeFor(change) < requiredFee(tx)) {
+      return { error: 'Not enough confirmed LTC to cover the network fee for this transaction.' };
+    }
   }
-  psbt.addOutput({ address: toAddress, value: amountSats });
-  if (plan.change >= DUST) {
-    psbt.addOutput({ address: fromAddress, value: plan.change });
-  }
-  for (let i = 0; i < plan.selected.length; i += 1) {
-    psbt.signInput(i, keyPair);
-  }
-  psbt.finalizeAllInputs();
 
   return {
-    hex: psbt.extractTransaction().toHex(),
-    fee: plan.fee,
-    change: plan.change,
-    inputs: plan.selected.length
+    hex: tx.toHex(),
+    fee: feeFor(change),
+    change: change >= DUST ? change : 0,
+    inputs: plan.selected.length,
+    vsize: tx.virtualSize()
   };
 }
 
