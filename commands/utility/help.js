@@ -18,7 +18,7 @@ const CATEGORIES = [
     fields: [
       { name: '🎵 Music', value: '`/music play` `/music skip` `/music radio`', inline: true },
       { name: '💰 Economy', value: '`/economy wallet daily` `/economy wallet shop`', inline: true },
-      { name: 'LTC', value: '`/ltc create` `/ltc send` `/ltc receive`', inline: true },
+      { name: 'Crypto', value: '`/ltc create` `/usdt create` `/ltc send` `/usdt send`', inline: true },
       { name: 'Gaming', value: '`/gaming mc status` `/gaming roblox user`', inline: true },
       { name: 'Tickets', value: '`/ticket` `/config type:ticket`', inline: true },
       { name: 'Community', value: '`/roles` `/utility suggest` `/utility tag`', inline: true },
@@ -77,13 +77,14 @@ const CATEGORIES = [
   },
   {
     id: 'crypto',
-    label: 'Litecoin',
+    label: 'Crypto',
     emoji: '🪙',
-    description: 'LTC wallets, send, receive, and transactions',
-    title: 'Litecoin Wallets',
-    body: 'Create Litecoin wallets, receive deposits, send LTC, and view on-chain history. Keys are stored encrypted on the bot. Sends need a confirmation.',
+    description: 'LTC and TRC-20 USDT wallets',
+    title: 'Crypto Wallets',
+    body: 'Create Litecoin and TRC-20 USDT wallets, receive deposits, send coins, and view on-chain history. Keys are stored encrypted on the bot. Sends need a confirmation. USDT is Tron TRC-20 only.',
     fields: [
-      { name: 'Commands', value: '`/ltc create` `/ltc wallets` `/ltc balance` `/ltc receive` `/ltc send` `/ltc transactions` `/ltc export` `/ltc delete`' }
+      { name: 'Litecoin', value: '`/ltc create` `/ltc wallets` `/ltc balance` `/ltc receive` `/ltc send` `/ltc transactions` `/ltc export` `/ltc delete`' },
+      { name: 'USDT (TRC-20)', value: '`/usdt create` `/usdt wallets` `/usdt balance` `/usdt receive` `/usdt send` `/usdt transactions` `/usdt export` `/usdt delete`' }
     ]
   },
   {

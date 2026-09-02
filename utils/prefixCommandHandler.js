@@ -59,16 +59,31 @@ async function runPrefixCommand(message, client) {
   if (commandName === 'counting' && ['setup', 'disable'].includes(rawArgs[0]?.toLowerCase())) effectiveCommandName = 'config';
   if (commandName === 'ticket' && ['panel', 'setup'].includes(rawArgs[0]?.toLowerCase())) effectiveCommandName = 'config';
   if (commandName === 'radio' && rawArgs[0]?.toLowerCase() === 'set') effectiveCommandName = 'config';
-  if (['ltccreate', 'ltcwallets', 'ltcbalance', 'ltcreceive', 'ltcsend', 'ltctx'].includes(commandName)) {
+  if (['ltccreate', 'ltcwallets', 'ltcbalance', 'ltcreceive', 'ltcsend', 'ltctx', 'ltcexport', 'ltcdelete'].includes(commandName)) {
     rawArgs.unshift({
       ltccreate: 'create',
       ltcwallets: 'wallets',
       ltcbalance: 'balance',
       ltcreceive: 'receive',
       ltcsend: 'send',
-      ltctx: 'transactions'
+      ltctx: 'transactions',
+      ltcexport: 'export',
+      ltcdelete: 'delete'
     }[commandName]);
     effectiveCommandName = 'ltc';
+  }
+  if (['usdtcreate', 'usdtwallets', 'usdtbalance', 'usdtreceive', 'usdtsend', 'usdttx', 'usdtexport', 'usdtdelete'].includes(commandName)) {
+    rawArgs.unshift({
+      usdtcreate: 'create',
+      usdtwallets: 'wallets',
+      usdtbalance: 'balance',
+      usdtreceive: 'receive',
+      usdtsend: 'send',
+      usdttx: 'transactions',
+      usdtexport: 'export',
+      usdtdelete: 'delete'
+    }[commandName]);
+    effectiveCommandName = 'usdt';
   }
   if (commandName === 'mcstatus' || commandName === 'mcserver') {
     rawArgs.unshift('status');
@@ -205,7 +220,7 @@ async function runPrefixCommand(message, client) {
           if (['play', 'stop', 'status'].includes(sub)) return sub;
           return 'status';
         }
-        if (effectiveCommandName === 'ltc') {
+        if (effectiveCommandName === 'ltc' || effectiveCommandName === 'usdt') {
           const sub = rawArgs[0]?.toLowerCase();
           if (sub === 'list') return 'wallets';
           if (sub === 'tx' || sub === 'txs') return 'transactions';
@@ -384,9 +399,18 @@ async function runPrefixCommand(message, client) {
           return rawArgs.find((arg) => /^(ltc1|[LM3])[a-zA-Z0-9]{20,}$/i.test(arg)) || null;
         }
 
+        if (effectiveCommandName === 'usdt' && name === 'address') {
+          return rawArgs.find((arg) => /^T[1-9A-HJ-NP-Za-km-z]{33}$/.test(arg)) || null;
+        }
+
         if (effectiveCommandName === 'ltc' && (name === 'wallet' || name === 'name')) {
           const skip = new Set(['create', 'wallets', 'list', 'balance', 'receive', 'send', 'transactions', 'tx', 'txs', 'delete', 'export', 'confirm', 'new', 'addr', 'address']);
           return rawArgs.find((arg) => !skip.has(arg.toLowerCase()) && !/^(ltc1|[LM3])/i.test(arg) && !/^\d+(\.\d+)?$/.test(arg)) || null;
+        }
+
+        if (effectiveCommandName === 'usdt' && (name === 'wallet' || name === 'name')) {
+          const skip = new Set(['create', 'wallets', 'list', 'balance', 'receive', 'send', 'transactions', 'tx', 'txs', 'delete', 'export', 'confirm', 'new', 'addr', 'address']);
+          return rawArgs.find((arg) => !skip.has(arg.toLowerCase()) && !/^T[1-9A-HJ-NP-Za-km-z]{33}$/.test(arg) && !/^\d+(\.\d+)?$/.test(arg)) || null;
         }
 
         if (effectiveCommandName === 'mc' && name === 'host') {
@@ -505,6 +529,13 @@ async function runPrefixCommand(message, client) {
             if (/^(ltc1|[LM3])/i.test(arg)) continue;
             const num = parseFloat(arg);
             if (Number.isFinite(num) && num > 0 && num < 84000000) return num;
+          }
+        }
+        if (effectiveCommandName === 'usdt' && name === 'amount') {
+          for (const arg of rawArgs) {
+            if (/^T[1-9A-HJ-NP-Za-km-z]{33}$/.test(arg)) continue;
+            const num = parseFloat(arg);
+            if (Number.isFinite(num) && num > 0) return num;
           }
         }
         const asInt = this.getInteger(name);

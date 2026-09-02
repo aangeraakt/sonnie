@@ -31,6 +31,7 @@ const files = {
   inventory: path.join(dataDir, 'inventory.json'),
   ai_whitelist: path.join(dataDir, 'ai_whitelist.json'),
   ltc_wallets: path.join(dataDir, 'ltc_wallets.json'),
+  usdt_wallets: path.join(dataDir, 'usdt_wallets.json'),
   youtube_channels: path.join(dataDir, 'youtube_channels.json'),
   role_panels: path.join(dataDir, 'role_panels.json'),
   temp_voice: path.join(dataDir, 'temp_voice.json'),
@@ -62,6 +63,7 @@ let storage = {
   inventory: {},
   ai_whitelist: {},
   ltc_wallets: {},
+  usdt_wallets: {},
   youtube_channels: {},
   role_panels: {},
   temp_voice: {},
@@ -845,6 +847,34 @@ const dbAPI = {
     storage.ltc_wallets[userId] = this.getLtcWallets(userId).filter((wallet) => wallet.id !== walletId);
     saveKey('ltc_wallets');
     return storage.ltc_wallets[userId];
+  },
+
+  getUsdtWallets(userId) {
+    if (!storage.usdt_wallets) storage.usdt_wallets = {};
+    if (!Array.isArray(storage.usdt_wallets[userId])) storage.usdt_wallets[userId] = [];
+    return storage.usdt_wallets[userId];
+  },
+
+  addUsdtWallet(userId, wallet) {
+    const wallets = this.getUsdtWallets(userId);
+    wallets.push(wallet);
+    saveKey('usdt_wallets');
+    return wallet;
+  },
+
+  findUsdtWallet(userId, nameOrId) {
+    const wallets = this.getUsdtWallets(userId);
+    if (!wallets.length) return null;
+    if (!nameOrId) return wallets[0];
+    const query = String(nameOrId).toLowerCase();
+    return wallets.find((wallet) => wallet.id === nameOrId || wallet.name.toLowerCase() === query) || null;
+  },
+
+  removeUsdtWallet(userId, walletId) {
+    if (!storage.usdt_wallets) storage.usdt_wallets = {};
+    storage.usdt_wallets[userId] = this.getUsdtWallets(userId).filter((wallet) => wallet.id !== walletId);
+    saveKey('usdt_wallets');
+    return storage.usdt_wallets[userId];
   },
 
   getRolePanel(guildId) {
