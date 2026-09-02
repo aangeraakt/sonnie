@@ -235,7 +235,8 @@ module.exports = {
         const payout = bet > 0 ? bet * 2 : 150;
         const xpEarned = bet > 0 ? 50 : 35;
         db.addBalance(guildId, userId, payout);
-        db.addXP(guildId, userId, xpEarned);
+        const { grantXp } = require('../../utils/levelingManager');
+        await grantXp(interaction.member, xpEarned, { channel: interaction.channel, source: 'trivia' });
 
         const wonEmbed = createEmbed({
           title: '🎉 Correct Answer!',

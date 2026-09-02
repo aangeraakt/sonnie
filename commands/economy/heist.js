@@ -200,7 +200,9 @@ module.exports = {
           const loot = Math.floor(Math.random() * (target.maxLoot - target.minLoot + 1)) + target.minLoot;
           trackGamble(guildId, userId);
           awardEarnings(guildId, userId, loot, 'gather');
-          db.addXP(guildId, userId, Math.min(200, Math.floor(loot / 150) + 30));
+          const xpGain = Math.min(200, Math.floor(loot / 150) + 30);
+          const { grantXp } = require('../../utils/levelingManager');
+          await grantXp(interaction.member, xpGain, { channel: interaction.channel, source: 'heist' });
 
           let bonusText = '';
           if (target.bonusItem && Math.random() < 0.45) {

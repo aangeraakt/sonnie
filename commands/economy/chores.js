@@ -36,10 +36,17 @@ module.exports = {
     const amount = awardEarnings(guild.id, user.id, rolled, 'work');
     const updated = db.getUser(guild.id, user.id);
 
+    const { grantXp } = require('../../utils/levelingManager');
+    const xpGain = Math.floor(Math.random() * 10) + 15;
+    await grantXp(interaction.member, xpGain, { channel: interaction.channel, source: 'chores' });
+
+    const booster = db.getXpBooster(guild.id, user.id);
+    const boosterTag = booster ? ` (${booster.multiplier}x Booster Active!)` : '';
+
     return interaction.reply({
       embeds: [createEmbed({
-        title: 'Chore Done',
-        description: `You ${chore.job} and earned **$${amount}**.\nWallet: **$${updated.balance}**`,
+        title: 'Chore Done 🧹',
+        description: `You ${chore.job} and earned **$${amount} coins** and **+${xpGain} XP**${boosterTag}.\nWallet: **$${updated.balance.toLocaleString()}**`,
         footerText: 'Sonnies Economy • Chores'
       })]
     });

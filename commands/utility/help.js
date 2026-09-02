@@ -69,10 +69,10 @@ const CATEGORIES = [
     title: '💰 Economy & Gathering',
     body: 'Earn coins, buy items, and play casino games.',
     fields: [
-      { name: 'Wallet', value: '`/economy wallet balance` `/economy wallet deposit` `/economy wallet withdraw` `/economy wallet pay` `/economy wallet daily` `/economy wallet work`', inline: false },
-      { name: 'Shop', value: '`/economy wallet shop` `/economy wallet buy` `/economy wallet sell` `/economy wallet inventory` `/economy wallet use`', inline: false },
-      { name: 'Gather', value: '`/economy gather fish` `/economy gather hunt` `/economy gather mine` `/economy gather dig` `/economy gather crime` `/economy gather hack` `/economy gather youtuber`', inline: false },
-      { name: 'Casino', value: '`/economy casino slots` `/economy casino blackjack` `/economy casino trivia` `/economy casino heist` `/economy wallet leaderboard`', inline: false }
+      { name: 'Wallet & Jobs', value: '`/economy wallet balance` `/economy wallet deposit` `/economy wallet withdraw` `/economy wallet pay` `/economy wallet daily` `/economy wallet work` `/economy wallet leaderboard`', inline: false },
+      { name: 'Shop & Boosters', value: '`/economy wallet shop` `/economy wallet buy` `/economy wallet sell` `/economy wallet inventory` `/economy wallet use` (Buy 1.5x, 2.0x, 3.0x XP Boosters)', inline: false },
+      { name: 'Earning & Gather', value: '`/economy gather fish` `/economy gather hunt` `/economy gather mine` `/economy gather dig` `/economy gather farm` `/economy gather deliver` `/economy gather salvage` `/economy gather craft` `/economy gather heist` `/economy gather trivia`', inline: false },
+      { name: 'Casino', value: '`/economy casino blackjack` (Play blackjack against the dealer)', inline: false }
     ]
   },
   {

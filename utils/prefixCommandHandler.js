@@ -46,11 +46,6 @@ async function runPrefixCommand(message, client) {
 
   let effectiveCommandName = commandName;
   if (commandName === 'bj') effectiveCommandName = 'blackjack';
-  if (commandName === 'slot') effectiveCommandName = 'slots';
-  if (commandName === 'roulettw') effectiveCommandName = 'roulette';
-  if (commandName === 'hl') effectiveCommandName = 'highlow';
-  if (commandName === 'scratchcard') effectiveCommandName = 'scratch';
-  if (commandName === 'dice') effectiveCommandName = 'dicebet';
   if (commandName === 'bal') effectiveCommandName = 'balance';
   if (commandName === 'dep') effectiveCommandName = 'deposit';
   if (commandName === 'with') effectiveCommandName = 'withdraw';
@@ -370,23 +365,6 @@ async function runPrefixCommand(message, client) {
           return rawArgs[0] || null;
         }
 
-        if (effectiveCommandName === 'roulette' && name === 'space') {
-          const knownNamedSpaces = ['red', 'black', 'green', 'even', 'odd', 'low', 'high', '1st12', '2nd12', '3rd12', '1-18', '19-36', '1-12', '13-24', '25-36'];
-          const namedArg = rawArgs.find(a => knownNamedSpaces.includes(a.toLowerCase()));
-          if (namedArg) return namedArg.toLowerCase();
-
-          if (rawArgs.length >= 2) {
-            const n0 = parseInt(rawArgs[0], 10);
-            const n1 = parseInt(rawArgs[1], 10);
-            if (!isNaN(n0) && n0 >= 0 && n0 <= 36 && !isNaN(n1) && n1 > 36) {
-              return String(n0);
-            }
-            if (!isNaN(n1) && n1 >= 0 && n1 <= 36) {
-              return String(n1);
-            }
-          }
-          return 'red';
-        }
 
         if (effectiveCommandName === 'play' && name === 'query') {
           return rawArgs.join(' ');
@@ -582,23 +560,12 @@ async function runPrefixCommand(message, client) {
           return !isNaN(num) ? num : null;
         }
 
-        if (['blackjack', 'roulette', 'slots'].includes(effectiveCommandName) && (name === 'amount' || name === 'bet')) {
+        if (effectiveCommandName === 'blackjack' && (name === 'amount' || name === 'bet')) {
           const u = db.getUser(message.guild.id, message.author.id);
           for (const arg of rawArgs) {
             const low = arg.toLowerCase();
             if (low === 'all' || low === 'max') return u.balance;
             if (low === 'half') return Math.max(10, Math.floor(u.balance / 2));
-          }
-
-          if (effectiveCommandName === 'roulette') {
-            const numArgs = rawArgs.map(a => parseInt(a, 10)).filter(n => !isNaN(n) && n > 0);
-            if (numArgs.length === 1) {
-              return numArgs[0];
-            } else if (numArgs.length >= 2) {
-              if (numArgs[0] <= 36 && numArgs[1] > 36) return numArgs[1];
-              if (numArgs[1] <= 36 && numArgs[0] > 36) return numArgs[0];
-              return numArgs[0];
-            }
           }
 
           for (const arg of rawArgs) {

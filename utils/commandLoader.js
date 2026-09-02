@@ -15,12 +15,12 @@ const FOLDER_META = {
         commands: ['balance', 'deposit', 'withdraw', 'pay', 'daily', 'hourly', 'weekly', 'monthly', 'work', 'leaderboard', 'inventory', 'shop', 'buy', 'sell', 'sellall', 'use']
       },
       gather: {
-        description: 'Jobs and collecting',
-        commands: ['fish', 'hunt', 'mine', 'dig', 'search', 'beg', 'crime', 'rob', 'stream', 'explore', 'postmeme', 'chores', 'hack', 'youtuber']
+        description: 'Jobs, gathering, and activities',
+        commands: ['fish', 'hunt', 'mine', 'dig', 'search', 'beg', 'crime', 'rob', 'stream', 'explore', 'postmeme', 'chores', 'hack', 'youtuber', 'farm', 'deliver', 'salvage', 'craft', 'heist', 'trivia']
       },
       casino: {
-        description: 'Gambling and minigames',
-        commands: ['mines', 'crash', 'highlow', 'scratch', 'wheel', 'dicebet', 'blackjack', 'roulette', 'slots', 'heist', 'trivia']
+        description: 'Casino table games',
+        commands: ['blackjack']
       },
       social: {
         description: 'Profiles, quests, marriage, trading, and prestige',

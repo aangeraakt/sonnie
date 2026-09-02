@@ -2,6 +2,7 @@ const { SlashCommandBuilder } = require('discord.js');
 const db = require('../../database/db');
 const { successEmbed, warningEmbed } = require('../../utils/embedBuilder');
 const { awardEarnings, trackGamble } = require('../../utils/earnings');
+const { grantXp } = require('../../utils/levelingManager');
 
 const jobs = [
   'Developer', 'Discord Mod', 'Barista', 'Graphic Designer',
@@ -40,8 +41,14 @@ module.exports = {
     const earned = awardEarnings(guildId, userId, rolled, 'work');
     db.setLastWork(guildId, userId, new Date().toISOString());
 
+    const xpToGive = Math.floor(Math.random() * 20) + 35; // 35-55 XP
+    await grantXp(interaction.member, xpToGive, { channel: interaction.channel, source: 'work' });
+
+    const booster = db.getXpBooster(guildId, userId);
+    const boosterTag = booster ? ` (${booster.multiplier}x Booster Active!)` : '';
+
     return interaction.reply({
-      embeds: [successEmbed('Shift Done 💼', `You worked as a **${job}** and earned **${earned} coins**!`)]
+      embeds: [successEmbed('Shift Done 💼', `You worked as a **${job}** and earned **${earned} coins** and **+${xpToGive} XP**${boosterTag}!`)]
     });
   }
 };

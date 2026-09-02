@@ -36,6 +36,14 @@ function resolveMultiplier(levelCfg, guildCfg, member, channelId) {
   const channelMultiplier = Number((levelCfg.channel_multipliers || {})[channelId]);
   if (Number.isFinite(channelMultiplier) && channelMultiplier > 0) multiplier *= channelMultiplier;
 
+  // Personal active XP booster purchased from /shop (e.g. 1.5x, 2.0x, 3.0x)
+  try {
+    const booster = db.getXpBooster(member.guild.id, member.id);
+    if (booster && Number.isFinite(booster.multiplier) && booster.multiplier > 1) {
+      multiplier *= booster.multiplier;
+    }
+  } catch (err) {}
+
   return multiplier;
 }
 

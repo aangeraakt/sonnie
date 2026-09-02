@@ -49,11 +49,23 @@ module.exports = {
     db.addItem(guild.id, user.id, caughtItem.id, 1);
     const ownedCount = db.getItemCount(guild.id, user.id, caughtItem.id);
 
+    const bonusCoins = Math.floor(Math.random() * 80) + 40;
+    const { awardEarnings } = require('../../utils/earnings');
+    const { grantXp } = require('../../utils/levelingManager');
+    const earned = awardEarnings(guild.id, user.id, bonusCoins, 'gather');
+
+    const rarityXp = { Junk: 10, Common: 20, Uncommon: 30, Rare: 50, Epic: 85, LEGENDARY: 180 };
+    const xpGain = rarityXp[caughtItem.rarity] || 25;
+    await grantXp(interaction.member, xpGain, { channel: interaction.channel, source: 'mine' });
+
+    const booster = db.getXpBooster(guild.id, user.id);
+    const boosterTag = booster ? ` (${booster.multiplier}x Booster Active!)` : '';
+
     const embed = createEmbed({
-      title: '⛏️ Mine',
-      description: `You found **${caughtItem.emoji} ${caughtItem.name}**!\n\n**Rarity:** \`${caughtItem.rarity}\`\n**Value:** $${caughtItem.sellPrice.toLocaleString()}\n**Owned:** ${ownedCount}x`,
+      title: '⛏️ Mine Excavation Complete',
+      description: `You struck deep rock veins and extracted **${caughtItem.emoji} ${caughtItem.name}**!\n\n💰 **Coins Earned:** +$${earned.toLocaleString()}\n✨ **XP Gained:** +${xpGain} XP${boosterTag}\n🏷️ **Item Value:** $${caughtItem.sellPrice.toLocaleString()} (\`${caughtItem.rarity}\`)\n📦 **Owned:** ${ownedCount}x`,
       color: RARITY_COLORS[caughtItem.rarity] || 0x9B59B6,
-      footerText: 'Sell loot with /sell or /sellall'
+      footerText: 'Sell minerals with /sell or /sellall • Craft ingots with /craft'
     });
 
     return interaction.reply({ embeds: [embed] });

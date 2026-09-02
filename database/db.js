@@ -44,7 +44,8 @@ const files = {
   starboard: path.join(dataDir, 'starboard.json'),
   sticky: path.join(dataDir, 'sticky.json'),
   afk: path.join(dataDir, 'afk.json'),
-  cases: path.join(dataDir, 'cases.json')
+  cases: path.join(dataDir, 'cases.json'),
+  xp_boosters: path.join(dataDir, 'xp_boosters.json')
 };
 
 // In-memory cache
@@ -76,7 +77,8 @@ let storage = {
   starboard: {},
   sticky: {},
   afk: {},
-  cases: []
+  cases: [],
+  xp_boosters: {}
 };
 
 // Helper: read a JSON file safely (falls back to the newest good backup)
@@ -1149,6 +1151,40 @@ const dbAPI = {
       .filter((c) => c.guild_id === guildId)
       .sort((a, b) => b.subscribers - a.subscribers)
       .slice(0, limit);
+  },
+
+  // --- XP Boosters ---
+  getXpBooster(guildId, userId) {
+    if (!storage.xp_boosters) storage.xp_boosters = {};
+    const guildBoosters = storage.xp_boosters[guildId];
+    if (!guildBoosters || !guildBoosters[userId]) return null;
+    const booster = guildBoosters[userId];
+    if (Date.now() > booster.expiresAt) {
+      delete guildBoosters[userId];
+      saveKey('xp_boosters');
+      return null;
+    }
+    return booster;
+  },
+
+  setXpBooster(guildId, userId, multiplier, durationMs) {
+    if (!storage.xp_boosters) storage.xp_boosters = {};
+    if (!storage.xp_boosters[guildId]) storage.xp_boosters[guildId] = {};
+    const now = Date.now();
+    const existing = this.getXpBooster(guildId, userId);
+    let expiresAt = now + durationMs;
+    // If existing booster of equal multiplier is active, stack the remaining time
+    if (existing && existing.multiplier === Number(multiplier) && existing.expiresAt > now) {
+      expiresAt = existing.expiresAt + durationMs;
+    }
+    const booster = {
+      multiplier: Number(multiplier),
+      expiresAt,
+      startedAt: now
+    };
+    storage.xp_boosters[guildId][userId] = booster;
+    saveKey('xp_boosters');
+    return booster;
   },
 
   // --- Storage maintenance ---

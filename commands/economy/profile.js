@@ -105,7 +105,20 @@ module.exports = {
         name: 'Streaks',
         value: `Daily \`${profile.daily_streak || 0}\`\nQuests \`${questRecord?.streak || 0}\``,
         inline: true
-      },
+      }
+    ];
+
+    const activeBooster = db.getXpBooster(guild.id, target.id);
+    if (activeBooster) {
+      const expSec = Math.floor(activeBooster.expiresAt / 1000);
+      fields.push({
+        name: '⚡ XP Booster',
+        value: `**${activeBooster.multiplier}x** (ends <t:${expSec}:R>)`,
+        inline: true
+      });
+    }
+
+    fields.push(
       {
         name: 'Achievements',
         value: `\`${Object.keys(record.unlocked).length} / ${Object.keys(ACHIEVEMENTS).length}\``,
@@ -116,7 +129,7 @@ module.exports = {
         value: `\`+${bonusFor(profile.prestige || 0)}%\``,
         inline: true
       }
-    ];
+    );
 
     if (badges) fields.push({ name: 'Badges', value: badges.slice(0, 1020), inline: false });
 

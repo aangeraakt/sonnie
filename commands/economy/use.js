@@ -43,7 +43,23 @@ module.exports = {
     // Consume 1 item
     db.removeItem(guild.id, user.id, item.id, 1);
 
-    // Effect: Energy Drink (Resets all cooldowns)
+    // Effect: XP Boosters (1.5x, 2.0x, 3.0x)
+    if (item.id.startsWith('xp_booster_')) {
+      const multiplier = item.multiplier || (item.id === 'xp_booster_15' ? 1.5 : item.id === 'xp_booster_20' ? 2.0 : 3.0);
+      const durationMs = item.durationMs || (item.id === 'xp_booster_30' ? 2 * 3600 * 1000 : 3600 * 1000);
+      const booster = db.setXpBooster(guild.id, user.id, multiplier, durationMs);
+      const expiryTimestamp = Math.floor(booster.expiresAt / 1000);
+
+      const embed = createEmbed({
+        title: `${item.emoji} XP Booster Activated!`,
+        description: `You consumed **${item.name}**!\n\n✨ **XP Multiplier:** **${multiplier}x**\n⏳ **Active Until:** <t:${expiryTimestamp}:R> (<t:${expiryTimestamp}:T>)\n\nAll XP earned across text chat, voice channels, and activities is boosted!`,
+        color: 0xF1C40F,
+        footerText: 'Sonnies Leveling • Booster active server-wide'
+      });
+      return interaction.reply({ embeds: [embed] });
+    }
+
+    // Effect: Padlock (Protects from robberies)
     if (item.id === 'padlock') {
       const protectMs = 2 * 60 * 60 * 1000;
       db.setRobProtectUntil(guild.id, user.id, Date.now() + protectMs);
@@ -55,14 +71,14 @@ module.exports = {
     }
 
     if (item.id === 'energy_drink') {
-      const cooldownList = ['fish', 'hunt', 'mine', 'dig', 'work', 'beg', 'crime', 'rob', 'search'];
+      const cooldownList = ['fish', 'hunt', 'mine', 'dig', 'work', 'beg', 'crime', 'rob', 'search', 'farm', 'deliver', 'salvage', 'craft'];
       for (const cmd of cooldownList) {
         db.setCooldown(guild.id, user.id, cmd, 0);
       }
 
       const embed = successEmbed(
         'Energy Drink Used',
-        'All activity cooldowns were reset. You can gather and work again immediately.'
+        'All activity cooldowns were reset. You can gather, farm, deliver, and work again immediately.'
       );
       return interaction.reply({ embeds: [embed] });
     }
