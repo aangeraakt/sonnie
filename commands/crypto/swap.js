@@ -352,7 +352,7 @@ module.exports = {
         }
 
         // ============================================================
-        // 3. DECIDE EXECUTION FLOW: AUTO-PAY VS EXTERNAL DEPOSIT
+        // 3. DECIDE EXECUTION FLOW & CONFIRMATION
         // ============================================================
         let selectedMode = 'external';
 
@@ -370,7 +370,7 @@ module.exports = {
           const choiceRow = new ActionRowBuilder().addComponents(
             new ButtonBuilder().setCustomId('swap_mode_auto').setLabel(`⚡ Auto-Pay from ${autoPayWallet.name}`).setStyle(ButtonStyle.Success),
             new ButtonBuilder().setCustomId('swap_mode_external').setLabel('📱 Deposit from External Wallet').setStyle(ButtonStyle.Primary),
-            new ButtonBuilder().setCustomId('swap_mode_cancel').setLabel('Cancel').setStyle(ButtonStyle.Secondary)
+            new ButtonBuilder().setCustomId('swap_mode_cancel').setLabel('❌ Cancel').setStyle(ButtonStyle.Danger)
           );
 
           const choiceMsg = await interaction.editReply({ embeds: [promptEmbed], components: [choiceRow] });
@@ -384,6 +384,37 @@ module.exports = {
               return interaction.editReply({ embeds: [warningEmbed('Swap Cancelled', 'You cancelled the swap.')], components: [] });
             }
             selectedMode = btnClick.customId === 'swap_mode_auto' ? 'auto' : 'external';
+          } catch (e) {
+            return interaction.editReply({ embeds: [warningEmbed('Swap Timed Out', 'Confirmation timed out.')], components: [] });
+          }
+        } else {
+          // Pre-shift confirmation for external wallet deposit
+          const promptEmbed = createEmbed({
+            title: `🔄 Confirm Cross-Chain Swap: ${pair.from} ➔ ${pair.to}`,
+            description: `You are about to swap **${amount} ${pair.from}** for approximately **~${estReceive} ${pair.to}**.\n\n` +
+              `• **Destination:** \`${destAddress}\`\n` +
+              `• **Live Rate:** \`1 ${pair.from} ≈ ${pair.rate.toFixed(4)} ${pair.to}\`\n` +
+              `• **Bridge Provider:** SideShift.ai (Non-Custodial)\n` +
+              `• **Payment Mode:** Deposit from your personal external wallet\n\n` +
+              `Click **Confirm & Get Deposit Address** to generate your one-time bridge address, or **Cancel** to abort.`,
+            color: 0x3498DB
+          });
+
+          const choiceRow = new ActionRowBuilder().addComponents(
+            new ButtonBuilder().setCustomId('swap_confirm_proceed').setLabel('✅ Confirm & Get Deposit Address').setStyle(ButtonStyle.Success),
+            new ButtonBuilder().setCustomId('swap_confirm_cancel').setLabel('❌ Cancel').setStyle(ButtonStyle.Danger)
+          );
+
+          const choiceMsg = await interaction.editReply({ embeds: [promptEmbed], components: [choiceRow] });
+          try {
+            const btnClick = await choiceMsg.awaitMessageComponent({
+              filter: (b) => b.user.id === userId && ['swap_confirm_proceed', 'swap_confirm_cancel'].includes(b.customId),
+              time: 45000
+            });
+            await btnClick.deferUpdate().catch(() => {});
+            if (btnClick.customId === 'swap_confirm_cancel') {
+              return interaction.editReply({ embeds: [warningEmbed('Swap Cancelled', 'You cancelled the swap.')], components: [] });
+            }
           } catch (e) {
             return interaction.editReply({ embeds: [warningEmbed('Swap Timed Out', 'Confirmation timed out.')], components: [] });
           }
@@ -504,29 +535,58 @@ module.exports = {
 
         const actionRow = new ActionRowBuilder().addComponents(
           new ButtonBuilder().setCustomId(`refresh_status_${shift.id}`).setLabel('🔄 Check Deposit Status').setStyle(ButtonStyle.Success),
+          new ButtonBuilder().setCustomId(`cancel_swap_${shift.id}`).setLabel('❌ Cancel Swap').setStyle(ButtonStyle.Danger),
           new ButtonBuilder().setLabel('SideShift Explorer').setStyle(ButtonStyle.Link).setURL(shift.orderUrl)
         );
 
         const replyMsg = await interaction.editReply({ embeds: [depositEmbed], components: [actionRow] });
 
-        // Allow user to click "Check Deposit Status" directly on this embed
+        // Interactive collector for status refresh and cancellation
         const collector = replyMsg.createMessageComponentCollector({
-          filter: (btn) => btn.user.id === userId && btn.customId === `refresh_status_${shift.id}`,
+          filter: (btn) => btn.user.id === userId && [`refresh_status_${shift.id}`, `cancel_swap_${shift.id}`].includes(btn.customId),
           time: 600000 // 10 minutes
         });
 
         collector.on('collect', async (btnInteraction) => {
-          await btnInteraction.deferUpdate();
-          const fresh = await swapBridge.getShiftStatus(shift.id).catch(() => null);
-          if (fresh) {
-            db.updateSwapOrder(shift.id, { status: fresh.status });
-            if (fresh.status !== 'waiting') {
-              await btnInteraction.editReply({ embeds: [renderStatusEmbed(fresh)] }).catch(() => {});
-            } else {
-              await btnInteraction.followUp({
-                content: '⏳ Deposit not detected yet. Please ensure you sent the transaction and wait for on-chain confirmation.',
+          if (btnInteraction.customId === `cancel_swap_${shift.id}`) {
+            await btnInteraction.deferUpdate();
+            const fresh = await swapBridge.getShiftStatus(shift.id).catch(() => null);
+            if (fresh && fresh.status !== 'waiting') {
+              return btnInteraction.followUp({
+                content: `⚠️ **Cannot Cancel:** A deposit was already detected on-chain! Current status: \`${fresh.status}\`.`,
                 flags: 64
               }).catch(() => {});
+            }
+
+            db.updateSwapOrder(shift.id, { status: 'cancelled' });
+            collector.stop('user_cancelled');
+
+            const cancelledEmbed = createEmbed({
+              title: '🚫 Swap Order Cancelled',
+              description: `Swap order \`${shift.id}\` has been cancelled.\n\n` +
+                `⛔ **Do NOT send funds to:**\n\`${shift.depositAddress}\`\n\n` +
+                `If you wish to make a swap in the future, run \`/swap execute\` again.`,
+              color: 0xED4245,
+              footerText: `Cancelled Order: ${shift.id}`
+            });
+
+            return btnInteraction.editReply({ embeds: [cancelledEmbed], components: [] }).catch(() => {});
+          }
+
+          if (btnInteraction.customId === `refresh_status_${shift.id}`) {
+            await btnInteraction.deferUpdate();
+            const fresh = await swapBridge.getShiftStatus(shift.id).catch(() => null);
+            if (fresh) {
+              db.updateSwapOrder(shift.id, { status: fresh.status });
+              if (fresh.status !== 'waiting') {
+                collector.stop('completed');
+                await btnInteraction.editReply({ embeds: [renderStatusEmbed(fresh)], components: [] }).catch(() => {});
+              } else {
+                await btnInteraction.followUp({
+                  content: '⏳ Deposit not detected yet. Please ensure you sent the transaction and wait for on-chain confirmation.',
+                  flags: 64
+                }).catch(() => {});
+              }
             }
           }
         });
