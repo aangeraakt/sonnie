@@ -84,7 +84,8 @@ const CATEGORIES = [
     body: 'Create Litecoin and TRC-20 USDT wallets, receive deposits, send coins, and view on-chain history. Keys are stored encrypted on the bot. Sends need a confirmation. USDT is Tron TRC-20 only.',
     fields: [
       { name: 'Litecoin', value: '`/ltc create` `/ltc wallets` `/ltc balance` `/ltc receive` `/ltc send` `/ltc transactions` `/ltc export` `/ltc delete`' },
-      { name: 'USDT (TRC-20)', value: '`/usdt create` `/usdt wallets` `/usdt balance` `/usdt receive` `/usdt send` `/usdt transactions` `/usdt export` `/usdt delete`' }
+      { name: 'USDT (TRC-20)', value: '`/usdt create` `/usdt wallets` `/usdt balance` `/usdt receive` `/usdt send` `/usdt transactions` `/usdt export` `/usdt delete`' },
+      { name: 'Instant Swaps', value: '`/swap rate` `/swap execute` `/swap status` `/swap history` (Accountless LTC ⇋ USDT bridge)' }
     ]
   },
   {

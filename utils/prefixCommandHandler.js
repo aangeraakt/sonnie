@@ -224,6 +224,16 @@ async function runPrefixCommand(message, client) {
           if (['create', 'wallets', 'balance', 'receive', 'send', 'transactions', 'export', 'delete'].includes(sub)) return sub;
           return 'wallets';
         }
+        if (effectiveCommandName === 'swap') {
+          const sub = rawArgs[0]?.toLowerCase();
+          if (['rate', 'quote'].includes(sub)) return 'rate';
+          if (['status', 'track'].includes(sub)) return 'status';
+          if (['history', 'orders', 'list'].includes(sub)) return 'history';
+          if (['execute', 'do', 'start'].includes(sub)) return 'execute';
+          if (sub === 'ltc-to-usdt' || sub === 'usdt-to-ltc') return 'execute';
+          if (rawArgs.some(a => ['ltc-to-usdt', 'usdt-to-ltc'].includes(a.toLowerCase()))) return 'execute';
+          return 'rate';
+        }
         if (effectiveCommandName === 'mc') {
           const sub = rawArgs[0]?.toLowerCase();
           if (sub === 'skin') return 'player';
@@ -391,6 +401,25 @@ async function runPrefixCommand(message, client) {
           return rawArgs.find((arg) => !skip.has(arg.toLowerCase()) && !/^T[1-9A-HJ-NP-Za-km-z]{33}$/.test(arg) && !/^\d+(\.\d+)?$/.test(arg)) || null;
         }
 
+        if (effectiveCommandName === 'swap') {
+          if (name === 'direction') {
+            const found = rawArgs.find(a => ['ltc-to-usdt', 'usdt-to-ltc'].includes(a.toLowerCase()));
+            if (found) return found.toLowerCase();
+            return 'ltc-to-usdt';
+          }
+          if (name === 'order_id') {
+            const skip = new Set(['status', 'track', 'swap']);
+            return rawArgs.find(a => !skip.has(a.toLowerCase())) || null;
+          }
+          if (name === 'from_wallet') {
+            const skip = new Set(['execute', 'swap', 'ltc-to-usdt', 'usdt-to-ltc', 'confirm']);
+            return rawArgs.find(a => !skip.has(a.toLowerCase()) && !/^\d+(\.\d+)?$/.test(a) && !/^(ltc1|[LM3]|T)/i.test(a)) || null;
+          }
+          if (name === 'to_wallet') {
+            return rawArgs.find(a => /^(ltc1|[LM3]|T[1-9A-HJ-NP-Za-km-z]{33})/i.test(a)) || null;
+          }
+        }
+
         if (effectiveCommandName === 'mc' && name === 'host') {
           return rawArgs.find((arg) => arg.includes('.') || arg.includes(':')) || (['status', 'player', 'skin'].includes(rawArgs[0]?.toLowerCase()) ? rawArgs[1] : rawArgs[0]) || null;
         }
@@ -512,6 +541,13 @@ async function runPrefixCommand(message, client) {
         if (effectiveCommandName === 'usdt' && name === 'amount') {
           for (const arg of rawArgs) {
             if (/^T[1-9A-HJ-NP-Za-km-z]{33}$/.test(arg)) continue;
+            const num = parseFloat(arg);
+            if (Number.isFinite(num) && num > 0) return num;
+          }
+        }
+        if (effectiveCommandName === 'swap' && name === 'amount') {
+          for (const arg of rawArgs) {
+            if (/^(ltc1|[LM3]|T[1-9A-HJ-NP-Za-km-z]{33})/i.test(arg)) continue;
             const num = parseFloat(arg);
             if (Number.isFinite(num) && num > 0) return num;
           }

@@ -45,7 +45,8 @@ const files = {
   sticky: path.join(dataDir, 'sticky.json'),
   afk: path.join(dataDir, 'afk.json'),
   cases: path.join(dataDir, 'cases.json'),
-  xp_boosters: path.join(dataDir, 'xp_boosters.json')
+  xp_boosters: path.join(dataDir, 'xp_boosters.json'),
+  crypto_swaps: path.join(dataDir, 'crypto_swaps.json')
 };
 
 // In-memory cache
@@ -78,7 +79,8 @@ let storage = {
   sticky: {},
   afk: {},
   cases: [],
-  xp_boosters: {}
+  xp_boosters: {},
+  crypto_swaps: {}
 };
 
 // Helper: read a JSON file safely (falls back to the newest good backup)
@@ -1185,6 +1187,47 @@ const dbAPI = {
     storage.xp_boosters[guildId][userId] = booster;
     saveKey('xp_boosters');
     return booster;
+  },
+
+  // --- Crypto Swaps ---
+  addSwapOrder(userId, order) {
+    if (!storage.crypto_swaps) storage.crypto_swaps = {};
+    if (!storage.crypto_swaps[userId]) storage.crypto_swaps[userId] = [];
+    storage.crypto_swaps[userId].unshift(order);
+    if (storage.crypto_swaps[userId].length > 30) {
+      storage.crypto_swaps[userId] = storage.crypto_swaps[userId].slice(0, 30);
+    }
+    saveKey('crypto_swaps');
+    return order;
+  },
+
+  getSwapOrders(userId) {
+    if (!storage.crypto_swaps) storage.crypto_swaps = {};
+    return storage.crypto_swaps[userId] || [];
+  },
+
+  getSwapOrder(orderId) {
+    if (!storage.crypto_swaps) return null;
+    for (const orders of Object.values(storage.crypto_swaps)) {
+      if (!Array.isArray(orders)) continue;
+      const found = orders.find(o => o.id === orderId);
+      if (found) return found;
+    }
+    return null;
+  },
+
+  updateSwapOrder(orderId, updates) {
+    if (!storage.crypto_swaps) return null;
+    for (const [userId, orders] of Object.entries(storage.crypto_swaps)) {
+      if (!Array.isArray(orders)) continue;
+      const idx = orders.findIndex(o => o.id === orderId);
+      if (idx !== -1) {
+        orders[idx] = { ...orders[idx], ...updates, updatedAt: new Date().toISOString() };
+        saveKey('crypto_swaps');
+        return orders[idx];
+      }
+    }
+    return null;
   },
 
   // --- Storage maintenance ---
